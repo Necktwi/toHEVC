@@ -1,0 +1,56 @@
+#!/bin/bash
+
+toHEVCfunc () {
+  echo "${0} is converting all ${1} files in $(pwd) to HEVC recursively"
+  for file in ./*."${1}"; do
+    if [ "${file}" = "./*.${1}" ] ; then
+      echo "empty folder!"
+      continue
+    fi
+    echo "Converting ${file} ..."
+    ffmpeg -y -i "$file" -c:v libx265 -c:a aac -an -x265-params crf=19 \
+    -preset faster video.mp4
+    if [ $? -ne 0 ]; then
+      rm video.mp4
+      continue
+    fi
+    ffmpeg -y -i "$file" -c:a libfdk_aac -profile:a aac_he audio.aac
+    if [ $? -ne 0 ]; then
+      rm video.mp4
+      rm audio.aac
+      continue
+    fi
+    mp4box -add audio.aac -add video.mp4 output.mp4
+    if [ $? -ne 0 ]; then
+      rm video.mp4
+      rm audio.aac
+      rm output.mp4
+      continue
+    fi
+    rm "$file"
+    ffmpeg -y -i output.mp4 -vcodec copy -acodec copy -tag:v hvc1 \
+    "${file%.*}.mp4"
+    rm video.mp4
+    rm audio.aac
+    rm output.mp4
+  done
+  for folder in *; do
+    if [ -d "${folder}" ]; then
+      echo "Opening ${folder} ..."
+    else
+      echo "Skipping file ${folder}"
+      continue;
+    fi
+    if [ "${folder}" = "." ] || [ "${folder}" = ".." ] || [ "${folder}" = "*" ]
+    then
+      echo "Skipping current or parent directory"
+      continue
+    fi
+    cd "${folder}" 
+    toHEVCfunc $@
+    cd ..
+  done
+}
+
+toHEVCfunc $@
+

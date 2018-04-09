@@ -7,16 +7,22 @@ toHEVCfunc () {
          echo "empty folder!"
          continue
       fi
+      ffmpeg -i "${file}" 2>&1 | grep "Video: hevc"
+      if [ $? = 0 ] ; then
+         echo "${file} is already of HEVC codec"
+         continue
+      fi
       echo "Converting ${file} ..."
-      ffmpeg -i ${file} -c:v libx265 -crf 21 -c:a aac -f mp4 -pix_fmt yuv420p \
-      -tag:v hvc1 -movflags faststart output.mp4
-      if ! [ $? = 0 ] ; then
+      ffmpeg -i "${file}" -c:v libx265 -crf 21 -c:a aac -f mp4 \
+      -pix_fmt yuv420p -tag:v hvc1 -movflags faststart output.mp4
+      if [ $? = 255 ] ; then
+         return 255
+      elif ! [ $? = 0 ] ; then
          rm output.mp4
          continue
       fi
       echo "Cleaning up ..."
-      rm ${file}
-      mv output.mp4 ${file}
+      mv output.mp4 "${file}"
    done
    for folder in *; do
       if [ -d "${folder}" ]; then

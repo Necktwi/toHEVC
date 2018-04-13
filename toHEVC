@@ -39,6 +39,9 @@ toHEVCfunc () {
       fi
       cd "${folder}" 
       toHEVCfunc $@
+      if [ $? = 255 ] ; then
+         return 255
+      fi
       cd ..
    done
 }

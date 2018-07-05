@@ -1,16 +1,16 @@
 #!/bin/bash
-
+                                                                                 
 toHEVCfunc () {
    echo "Converting all ${1} files in $(pwd) to HEVC recursively"
-   for file in ./*."${1}"; do
+   for file in ./"${1}"; do
       CopyFlag=false
-      if [ "${file}" = "./*.${1}" ] ; then
+      if [ "${file}" = "./${1}" ] ; then
          echo "empty folder!"
          continue
       fi
       ffmpeg -i "${file}" 2>&1 | grep "Video: hevc"
       if [ $? = 0 ] ; then
-         if ! [ ${1} = "mp4" ] ; then
+         if ! [ $(echo ${1} | sed -E 's/.+\.(mp4)$/\1/') = "mp4" ] ; then
             CopyFlag=true
          else
             echo "${file} is already of HEVC codec"

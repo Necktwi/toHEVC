@@ -37,8 +37,9 @@ toHEVCfunc () {
       echo "Cleaning up ..."
       echo "Trashing ${file}"
       trash "${file}"
-      echo "Renaming output.mp4 to ${file}"
-      mv output.mp4 $(basename -s "${1}" ${file})mp4
+      FileName="$(basename -s "${1}" "${file}")mp4"
+      echo "Renaming output.mp4 to ${FileName}"
+      mv output.mp4 "${FileName}"
    done
    for folder in *; do
       if [ -d "${folder}" ]; then

@@ -18,11 +18,11 @@ toHEVC my.mkv
 ##### FFMPEG
 https://trac.ffmpeg.org/wiki/CompilationGuide/
 
-##### trash-cli
+#### trash-cli
 
-#### Ubuntu
+##### Ubuntu
 sudo apt install trash-cli
 
-#### macOS
+##### macOS
 brew install trash
 

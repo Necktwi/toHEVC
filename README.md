@@ -7,8 +7,22 @@ toHEVC mkv
 ```
 
 To convert a single file, rename the file extension to a distinct name and run toHEVC with that
-extension ;)
+extension!
 ```
 mv Movie.mkv Movie.my.mkv
 toHEVC my.mkv
 ```
+
+### Dependencies
+
+##### FFMPEG
+https://trac.ffmpeg.org/wiki/CompilationGuide/
+
+#### Ubuntu
+
+##### trash-cli
+sudo apt install trash-cli
+
+#### macOS
+brew install trash
+

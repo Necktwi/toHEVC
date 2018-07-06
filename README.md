@@ -15,7 +15,7 @@ toHEVC my.mkv
 
 ### Dependencies
 
-##### FFMPEG
+#### FFMPEG
 https://trac.ffmpeg.org/wiki/CompilationGuide/
 
 #### trash-cli

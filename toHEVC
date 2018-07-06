@@ -1,26 +1,40 @@
 #!/bin/bash
 
+# Gowtham Kudupudi 2018/07/06
+
 toHEVCfunc () {
    echo "Converting all ${1} files in $(pwd) to HEVC recursively"
    for file in ./*."${1}"; do
-      CopyFlag=false
+      VCopyFlag=false
+      ACopyFlag=false
       if [ "${file}" = "./*.${1}" ] ; then
          echo "empty folder!"
          continue
       fi
-      ffmpeg -i "${file}" 2>&1 | grep "Video: hevc"
+      echo "Observing input format..."
+      ffmpeg -i "${file}" 2>&1 | grep "Video: hevc" 2>&1 > /dev/null
       if [ $? = 0 ] ; then
-         if ! [ ${1} = "mp4" ] ; then
-            CopyFlag=true
-         else
+         VCopyFlag=true
+         ffmpeg -i "${file}" 2>&1 | grep "Audio: aac" 2>&1 > /dev/null
+         if [ $? = 0 ] ; then
+            ACopyFlag=true
+         fi
+         if [ ${1} = "mp4" ] ; then
             echo "${file} is already of HEVC codec"
             continue
          fi
       fi
-      if [ "$CopyFlag" = "true" ]; then
-         echo "Video already in HEVC. Copying it to MP4 container ..."
-         ffmpeg -i "${file}" -c copy -c:s mov_text -f mp4 -tag:v hvc1 \
-         -movflags faststart output.mp4
+      if [ "$VCopyFlag" = "true" ]; then
+         if [ "$ACopyFlag" = "true" ]; then
+            echo "Video && Audio already in HEVC && AAC."
+            echo "Copying it to MP4 container ..."
+            ffmpeg -i "${file}" -c copy -c:s mov_text -f mp4 -tag:v hvc1 \
+            -movflags faststart output.mp4
+         else
+            echo "Video already in HEVC. Converting audio to AAC ..."
+            ffmpeg -i "${file}" -c:v copy -c:a aac -c:s mov_text \
+            -f mp4 -tag:v hvc1 -movflags faststart output.mp4
+         fi
       else
          echo "Converting ${file} ..."
          ffmpeg -i "${file}" -c:v libx265 -crf 21 -c:a aac -c:s mov_text \
@@ -29,17 +43,34 @@ toHEVCfunc () {
       FFMPEGExitCode=$?
       echo "FFMPEG exit code: $FFMPEGExitCode"
       if [ $FFMPEGExitCode = 255 ] ; then
+         echo "User signalled to quit."
          return 255
-      elif ! [ $FFMPEGExitCode = 0 ] ; then
+      elif [ $FFMPEGExitCode = 0 ] ; then
+         echo "Cleaning up ..."
+         echo "Trashing ${file}"
+         trash "${file}"
+         TrashCode=$?
+         FileName="$(basename -s "${1}" "${file}")mp4"
+         if [ $TrashCode = 0 ] || ! [ "$FileName" = "$file" ] ; then
+            echo "Renaming output.mp4 to ${FileName}"
+            mv output.mp4 "${FileName}"
+            if ! [ $? = 0 ] ; then
+               echo "Renaming failed. Exiting."
+               return 254
+            fi
+         else
+            echo "Renaming output.mp4 to HEVC_${FileName}"
+            mv output.mp4 "HEVC_${FileName}"
+            if ! [ $? = 0 ] ; then
+               echo "Renaming failed. Exiting."
+               return 254
+            fi
+         fi
+      else
+         echo "Something went wrong! Skipping current file conversion ..."
          rm output.mp4
          continue
       fi
-      echo "Cleaning up ..."
-      echo "Trashing ${file}"
-      trash "${file}"
-      FileName="$(basename -s "${1}" "${file}")mp4"
-      echo "Renaming output.mp4 to ${FileName}"
-      mv output.mp4 "${FileName}"
    done
    for folder in *; do
       if [ -d "${folder}" ]; then
@@ -49,19 +80,19 @@ toHEVCfunc () {
          continue;
       fi
       if [ "${folder}" = "." ] || [ "${folder}" = ".." ] || \
-      [ "${folder}" = "*" ]
+         [ "${folder}" = "*" ]
       then
          echo "Skipping current or parent directory"
-      continue
+         continue
       fi
       cd "${folder}" 
       toHEVCfunc $@
-      if [ $? = 255 ] ; then
-         return 255
+      ExitCode=$?
+      if ! [ $ExitCode = 0 ] ; then
+         return $ExitCode
       fi
       cd ..
    done
 }
 
 toHEVCfunc $@
-

@@ -2,9 +2,14 @@
 
 # Gowtham Kudupudi 2018/07/06
 
+shopt -s nullglob
+
 toHEVCfunc () {
    echo "Converting all ${1} files in $(pwd) to HEVC recursively"
-   for file in ./*."${1}"; do
+   if [ ! "${2}" = "" ]; then
+      echo "FFMPEG args: ${2}"
+   fi
+   for file in *.${1}; do
       VCopyFlag=false
       ACopyFlag=false
       if [ "${file}" = "./*.${1}" ] ; then
@@ -29,16 +34,24 @@ toHEVCfunc () {
             echo "Video && Audio already in HEVC && AAC."
             echo "Copying it to MP4 container ..."
             ffmpeg -i "${file}" -c copy -c:s mov_text -f mp4 -tag:v hvc1 \
-            -movflags faststart output.mp4
+            -movflags faststart ${2} output.mp4
          else
             echo "Video already in HEVC. Converting audio to AAC ..."
             ffmpeg -i "${file}" -c:v copy -c:a aac -c:s mov_text \
-            -f mp4 -tag:v hvc1 -movflags faststart output.mp4
+            -f mp4 -tag:v hvc1 -movflags faststart ${2} output.mp4
          fi
       else
-         echo "Converting ${file} ..."
-         ffmpeg -i "${file}" -c:v libx265 -crf 21 -c:a aac -c:s mov_text \
-         -f mp4 -pix_fmt yuv420p -tag:v hvc1 -movflags faststart output.mp4
+         if [ "$ACopyFlag" = "true" ]; then
+            echo "Audio already in AAC. Converting video to HEVC ..."
+            ffmpeg -i "${file}" -c:v libx265 -crf 21 -c:a copy -c:s mov_text \
+            -f mp4 -pix_fmt yuv420p -tag:v hvc1 -movflags faststart ${2}\
+            output.mp4
+         else
+            echo "Converting ${file} ..."
+            ffmpeg -i "${file}" -c:v libx265 -crf 21 -c:a aac -c:s mov_text \
+            -f mp4 -pix_fmt yuv420p -tag:v hvc1 -movflags faststart ${2}\
+            output.mp4
+         fi
       fi
       FFMPEGExitCode=$?
       echo "FFMPEG exit code: $FFMPEGExitCode"
@@ -76,14 +89,7 @@ toHEVCfunc () {
       if [ -d "${folder}" ]; then
          echo "Opening ${folder} ..."
       else
-         echo "Skipping file ${folder}"
          continue;
-      fi
-      if [ "${folder}" = "." ] || [ "${folder}" = ".." ] || \
-         [ "${folder}" = "*" ]
-      then
-         echo "Skipping current or parent directory"
-         continue
       fi
       cd "${folder}" 
       toHEVCfunc $@
@@ -95,4 +101,4 @@ toHEVCfunc () {
    done
 }
 
-toHEVCfunc $@
+toHEVCfunc "$@"
